@@ -1,0 +1,347 @@
+PROGRAM Sort_By_Height
+#info= QLD
+BOF
+
+
+(**)
+
+SOR  [0,1] (**) (**)  XIC  [1,0] (*__SYSVA_FIRST_SCAN*) (**)  
+ BST  OTR  [2,0] (*Sts_EStop_Latched*) (**)
+   NXB  
+ BST  
+ BST  OTR  [2,1] (*Sts_Turntable_Loading*) (**)
+   NXB  OTR  [2,2] (*Sts_Class_Valid*) (**)
+ BND
+
+   NXB  
+ BST  OTR  [2,3] (*Sts_Tall_Box_Seen*) (**)
+   NXB  
+ BST  OTR  [2,4] (*Cmd_Turn*) (**)
+   NXB  
+ BST  OTR  [2,5] (*Cmd_Left_Conv*) (**)
+   NXB  OTR  [2,6] (*Cmd_Right_Conv*) (**)
+ BND
+
+ BND
+
+ BND
+
+ BND
+
+ BND
+
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,9] (**) (**)  XIC  [1,0] (*BOOL_IN_12*) (*reset*)  XIC  [2,0] (*BOOL_IN_14*) (*emergency_stop*)  OTR  [3,0] (*Sts_EStop_Latched*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,11] (**) (**)  XIO  [1,0] (*BOOL_IN_14*) (*emergency_stop*)  OTS  [2,0] (*Sts_EStop_Latched*) (**)
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,13] (**) (**)  XIC  [1,0] (*BOOL_IN_13*) (*stop*)  XIC  [2,0] (*BOOL_IN_14*) (*emergency_stop*)  XIC  [3,0] (*BOOL_IN_15*) (*auto*)  XIC  [4,0] (*BOOL_IN_16*) (*FACTORY_I/O_Running*)  XIO  [5,0] (*Sts_EStop_Latched*) (**)  OTE  [6,0] (*Sts_Run_Permit*) (**)
+EOR [7,0]
+
+
+(**)
+
+SOR  [0,15] (**) (**)  
+ BST  XIC  [1,0] (*BOOL_IN_11*) (*start*)
+   NXB  XIC  [1,1] (*Sts_Running*) (**)
+ BND
+  XIC  [2,0] (*Sts_Run_Permit*) (**)  OTE  [3,0] (*Sts_Running*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,18] (**) (**)  XIC  [1,0] (*BOOL_IN_1*) (*low_box*)  XIC  [2,0] (*BOOL_IN_2*) (*high_box*)  OTS  [3,0] (*Sts_Tall_Box_Seen*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,20] (**) (**)  XIC  [1,0] (*BOOL_IN_1*) (*low_box*)  FB  [2,0] (*F_TRIG*) (*FT_Low_Beam*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )  OTE  [5,0] (*Pls_Box_Passed*) (**)
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,22] (**) (**)  XIC  [1,0] (*Pls_Box_Passed*) (**)  XIC  [2,0] (*Sts_Tall_Box_Seen*) (**)  FB  [3,0] (*1 gain*) (*5*) ( (*EN:EN*)(**) (**)  , (*i1:*)(*CLASS_TALL*) (**) ; (*ENO:ENO*)(**) (**)  , (*o1:*)(*Class_New*) (**) )
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,25] (**) (**)  XIC  [1,0] (*Pls_Box_Passed*) (**)  XIO  [2,0] (*Sts_Tall_Box_Seen*) (**)  FB  [3,0] (*1 gain*) (*6*) ( (*EN:EN*)(**) (**)  , (*i1:*)(*CLASS_SHORT*) (**) ; (*ENO:ENO*)(**) (**)  , (*o1:*)(*Class_New*) (**) )
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,28] (**) (**)  XIC  [1,0] (*Pls_Box_Passed*) (**)  OTR  [2,0] (*Sts_Tall_Box_Seen*) (**)
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,30] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Pls_Box_Passed*) (**)  XIO  [3,0] (*Sts_Queue_Full*) (**)  OTE  [4,0] (*Pls_Queue_Load*) (**)
+EOR [5,0]
+
+
+(**)
+
+SOR  [0,32] (**) (**)  XIC  [1,0] (*Pls_Queue_Load*) (**)  FB  [2,0] (*FFL*) (*FFL_Queue_Load*) ( (*Execute:*)(**) (**)  , (*Src:*)(*Class_New*) (**)  , (*FIFO:*)(*Class_Queue*) (**)  , (*FIFOCon:*)(*Class_Queue_Ctrl*) (**)  , (*__ADI_FIFO:*)(**) (**)  , (*__DTI_Src:*)(**) (**)  , (*__DTI_FIFO:*)(**) (**) ; (*Done:*)(**) (**)  , (*Full:*)(*Sts_Queue_Full*) (**)  , (*Empty:*)(**) (**)  , (*Error:*)(**) (**)  , (*ErrorID:*)(**) (**) )
+EOR [5,0]
+
+
+(**)
+
+SOR  [0,40] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*BOOL_IN_6*) (*at_front*)  FB  [3,0] (*R_TRIG*) (*Rt_At_Front*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )  XIO  [6,0] (*Sts_Class_Valid*) (**)  XIO  [7,0] (*Sts_Queue_Empty*) (**)  OTE  [8,0] (*Pls_Queue_Read*) (**)
+EOR [9,0]
+
+
+(**)
+
+SOR  [0,42] (**) (**)  XIC  [1,0] (*Pls_Queue_Read*) (**)  FB  [2,0] (*FFU*) (*FFU_Queue_Read*) ( (*Execute:*)(**) (**)  , (*Dest:*)(*Class_Active*) (**)  , (*DestOffset:*)(**) (**)  , (*FIFO:*)(*Class_Queue*) (**)  , (*FIFOCon:*)(*Class_Queue_Ctrl*) (**)  , (*__ADI_Dest:*)(**) (**)  , (*__ADI_FIFO:*)(**) (**)  , (*__DTI_Dest:*)(**) (**)  , (*__DTI_FIFO:*)(**) (**) ; (*Done:*)(**) (**)  , (*Full:*)(**) (**)  , (*Empty:*)(*Sts_Queue_Empty*) (**)  , (*Error:*)(*Sts_Queue_Read_Error*) (**)  , (*ErrorID:*)(**) (**) )  OTE  [5,0] (*Sts_Queue_Read_Done*) (**)
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,52] (**) (**)  XIC  [1,0] (*Sts_Queue_Read_Done*) (**)  XIO  [2,0] (*Sts_Queue_Read_Error*) (**)  OTS  [3,0] (*Sts_Class_Valid*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,54] (**) (**)  XIC  [1,0] (*Sts_Class_Valid*) (**)  FB  [2,0] (*=*) (*3*) ( (*EN:EN*)(**) (**)  , (*i1:*)(*Class_Active*) (**)  , (*i2:*)(*CLASS_SHORT*) (**) ; (*o1:*)(**) (**) )  OTE  [5,0] (*Sts_Active_Short*) (**)
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,58] (**) (**)  XIC  [1,0] (*Sts_Class_Valid*) (**)  FB  [2,0] (*=*) (*4*) ( (*EN:EN*)(**) (**)  , (*i1:*)(*Class_Active*) (**)  , (*i2:*)(*CLASS_TALL*) (**) ; (*o1:*)(**) (**) )  OTE  [5,0] (*Sts_Active_Tall*) (**)
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,62] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*BOOL_IN_4*) (*at_load_position*)  XIC  [3,0] (*BOOL_IN_3*) (*at_turntable_entry*)  OTS  [4,0] (*Sts_Turntable_Loading*) (**)
+EOR [5,0]
+
+
+(**)
+
+SOR  [0,64] (**) (**)  XIC  [1,0] (*BOOL_IN_6*) (*at_front*)  OTR  [2,0] (*Sts_Turntable_Loading*) (**)
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,66] (**) (**)  
+ BST  XIC  [1,0] (*BOOL_IN_4*) (*at_load_position*)  XIO  [2,0] (*BOOL_IN_6*) (*at_front*)  XIC  [3,0] (*Sts_Turntable_Loading*) (**)
+   NXB  XIC  [1,1] (*BOOL_IN_5*) (*at_unload_position*)  XIC  [2,1] (*Sts_Active_Short*) (**)
+ BND
+  OTE  [4,0] (*Cmd_Turntable_Load*) (**)
+EOR [5,0]
+
+
+(**)
+
+SOR  [0,69] (**) (**)  XIC  [1,0] (*BOOL_IN_5*) (*at_unload_position*)  XIC  [2,0] (*Sts_Active_Tall*) (**)  OTE  [3,0] (*Cmd_Turntable_Unload*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,71] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*BOOL_IN_4*) (*at_load_position*)  XIC  [3,0] (*Sts_Class_Valid*) (**)  XIC  [4,0] (*BOOL_IN_6*) (*at_front*)  FB  [5,0] (*R_TRIG*) (*Rt_Turn_Start*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )  OTS  [8,0] (*Cmd_Turn*) (**)
+EOR [9,0]
+
+
+(**)
+
+SOR  [0,73] (**) (**)  
+ BST  XIC  [1,0] (*BOOL_IN_5*) (*at_unload_position*)  XIC  [2,0] (*BOOL_IN_7*) (*at_right_entry*)  FB  [3,0] (*F_TRIG*) (*Ft_Unload_Right*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )
+   NXB  XIC  [1,1] (*BOOL_IN_5*) (*at_unload_position*)  XIC  [2,1] (*BOOL_IN_8*) (*at_left_entry*)  FB  [3,1] (*F_TRIG*) (*Ft_Unload_Left*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )
+ BND
+  
+ BST  OTR  [6,0] (*Cmd_Turn*) (**)
+   NXB  OTR  [6,1] (*Sts_Class_Valid*) (**)
+ BND
+
+EOR [7,0]
+
+
+(**)
+
+SOR  [0,76] (**) (**)  
+ BST  XIO  [1,0] (*BOOL_IN_3*) (*at_turntable_entry*)
+   NXB  XIC  [1,1] (*BOOL_IN_4*) (*at_load_position*)  XIC  [2,1] (*Cmd_Turntable_Load*) (**)
+ BND
+  OTE  [3,0] (*Cmd_Entry_Conv*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,79] (**) (**)  
+ BST  XIO  [1,0] (*BOOL_IN_0*) (*at_entry*)
+   NXB  XIC  [1,1] (*Cmd_Entry_Conv*) (**)
+ BND
+  XIO  [2,0] (*Sts_Queue_Full*) (**)  OTE  [3,0] (*Cmd_Feeder*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,82] (**) (**)  XIC  [1,0] (*BOOL_IN_5*) (*at_unload_position*)  XIC  [2,0] (*Sts_Active_Short*) (**)  OTS  [3,0] (*Cmd_Left_Conv*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,84] (**) (**)  XIC  [1,0] (*BOOL_IN_5*) (*at_unload_position*)  XIC  [2,0] (*Sts_Active_Tall*) (**)  OTS  [3,0] (*Cmd_Right_Conv*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,86] (**) (**)  XIC  [1,0] (*BOOL_IN_10*) (*at_left_exit*)  FB  [2,0] (*F_TRIG*) (*Ft_Left_Exit*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )  OTE  [5,0] (*Pls_Left_Exit*) (**)
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,88] (**) (**)  XIC  [1,0] (*BOOL_IN_9*) (*at_right_exit*)  FB  [2,0] (*F_TRIG*) (*Ft_Right_Exit*) ( (*CLK:CLK*)(**) (**) ; (*Q:Q*)(**) (**) )  OTE  [5,0] (*Pls_Right_Exit*) (**)
+EOR [6,0]
+
+
+(**)
+
+SOR  [0,90] (**) (**)  XIC  [1,0] (*Pls_Left_Exit*) (**)  XIO  [2,0] (*BOOL_IN_8*) (*at_left_entry*)  OTR  [3,0] (*Cmd_Left_Conv*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,92] (**) (**)  XIC  [1,0] (*Pls_Right_Exit*) (**)  XIO  [2,0] (*BOOL_IN_7*) (*at_right_entry*)  OTR  [3,0] (*Cmd_Right_Conv*) (**)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,94] (**) (**)  
+ BST  XIC  [1,0] (*Pls_Left_Exit*) (**)
+   NXB  XIC  [1,1] (*Pls_Right_Exit*) (**)
+ BND
+  OTE  [2,0] (*Pls_Box_Exited*) (**)
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,97] (**) (**)  
+ BST  XIC  [1,0] (*__SYSVA_FIRST_SCAN*) (**)
+   NXB  XIO  [1,1] (*BOOL_IN_16*) (*FACTORY_I/O_Running*)
+ BND
+  OTE  [2,0] (*Sts_Counter_Reset*) (**)
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,100] (**) (**)  XIC  [1,0] (*BOOL_IN_0*) (*at_entry*)  FB  [2,0] (*CTUD*) (*CTUD_Boxes_In_Process*) ( (*CU:CU*)(**) (**)  , (*CD:CD*)(*Pls_Box_Exited*) (**)  , (*RESET:RESE*)(*Sts_Counter_Reset*) (**)  , (*LOAD:LOAD*)(*FALSE*) (**)  , (*PV:PV*)(*1000*) (**) ; (*QU:QU*)(**) (**)  , (*QD:QD*)(**) (**)  , (*CV:CV*)(*Cnt_Boxes_In_Process*) (**) )
+EOR [5,0]
+
+
+(**)
+
+SOR  [0,106] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Feeder*) (**)  OTE  [3,0] (*BOOL_OUT_0*) (*feeder_conveyor*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,108] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Entry_Conv*) (**)  OTE  [3,0] (*BOOL_OUT_1*) (*entry_conveyor*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,110] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Turntable_Load*) (**)  OTE  [3,0] (*BOOL_OUT_2*) (*load*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,112] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Turntable_Unload*) (**)  OTE  [3,0] (*BOOL_OUT_3*) (*unload*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,114] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Turn*) (**)  OTE  [3,0] (*BOOL_OUT_4*) (*turn*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,116] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Left_Conv*) (**)  OTE  [3,0] (*BOOL_OUT_5*) (*left_conveyor*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,118] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  XIC  [2,0] (*Cmd_Right_Conv*) (**)  OTE  [3,0] (*BOOL_OUT_6*) (*right_conveyor*)
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,120] (**) (**)  XIC  [1,0] (*Sts_Running*) (**)  
+ BST  OTE  [2,0] (*BOOL_OUT_7*) (*green_indicator*)
+   NXB  OTE  [2,1] (*BOOL_OUT_12*) (*stop_light*)
+ BND
+
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,123] (**) (**)  XIO  [1,0] (*Sts_Running*) (**)  XIO  [2,0] (*Sts_EStop_Latched*) (**)  
+ BST  OTE  [3,0] (*BOOL_OUT_8*) (*yellow_indicator*)
+   NXB  OTE  [3,1] (*BOOL_OUT_10*) (*start_light*)
+ BND
+
+EOR [4,0]
+
+
+(**)
+
+SOR  [0,126] (**) (**)  XIC  [1,0] (*Sts_EStop_Latched*) (**)  
+ BST  OTE  [2,0] (*BOOL_OUT_9*) (*red_indicator*)
+   NXB  OTE  [2,1] (*BOOL_OUT_11*) (*reset_light*)
+ BND
+
+EOR [3,0]
+
+
+(**)
+
+SOR  [0,129] (**) (**)  FB  [1,0] (*ANY_TO_INT*) (*7*) ( (*EN:EN*)(**) (**)  , (*i1:*)(*Cnt_Boxes_In_Process*) (**) ; (*ENO:ENO*)(**) (**)  , (*o1:*)(*INT_OUT_0*) (**) )
+EOR [4,0]
+EOF
+#end_info
+#info= ID_MAX
+NextId=7
+#end_info
+END_PROGRAM

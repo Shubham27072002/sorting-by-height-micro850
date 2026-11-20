@@ -1,0 +1,29 @@
+# --- Connected Components Workbench (CCW) / Visual Studio shell ---
+# Per-user settings and caches
+.vs/
+*.suo
+*.ccwsuo
+*.user
+
+# Chromium caches created by the CCW shell
+GPUCache/
+DawnCache/
+
+# Automatic project backups and compiler error logs
+Controller_Backup.zip
+*_Backup.zip
+*.err
+
+# Connection settings: contain the PC name and the controller path / IP address
+DevicePref.xml
+
+# --- Factory I/O ---
+# Keep the scene file; ignore autosaves and temporary files if any appear
+*.factoryio.bak
+*.tmp
+
+# --- OS / editor noise ---
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

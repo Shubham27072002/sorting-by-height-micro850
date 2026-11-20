@@ -1,0 +1,761 @@
+(****** QuickLD compiler *******************************)
+(****** Copyright Rockwell Automation Canada, Ltd ******)
+(****** ST *********************************************)
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,1
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB1 := __SYSVA_FIRST_SCAN ;
+__EDTB2 := __EDTB1 ;
+IF __EDTB2 THEN
+(*Reset coil*)
+STS_ESTOP_LATCHED := FALSE ;
+END_IF ;
+__EDTB3 := __EDTB1 ;
+IF __EDTB3 THEN
+(*Reset coil*)
+STS_TURNTABLE_LOADING := FALSE ;
+END_IF ;
+__EDTB4 := __EDTB1 ;
+IF __EDTB4 THEN
+(*Reset coil*)
+STS_CLASS_VALID := FALSE ;
+END_IF ;
+__EDTB5 := __EDTB1 ;
+IF __EDTB5 THEN
+(*Reset coil*)
+STS_TALL_BOX_SEEN := FALSE ;
+END_IF ;
+__EDTB6 := __EDTB1 ;
+IF __EDTB6 THEN
+(*Reset coil*)
+CMD_TURN := FALSE ;
+END_IF ;
+__EDTB7 := __EDTB1 ;
+IF __EDTB7 THEN
+(*Reset coil*)
+CMD_LEFT_CONV := FALSE ;
+END_IF ;
+__EDTB8 := __EDTB1 ;
+IF __EDTB8 THEN
+(*Reset coil*)
+CMD_RIGHT_CONV := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0001 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,9
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB9 := BOOL_IN_12 AND BOOL_IN_14 ;
+IF __EDTB9 THEN
+(*Reset coil*)
+STS_ESTOP_LATCHED := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0002 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,11
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB10 := NOT(BOOL_IN_14) ;
+IF __EDTB10 THEN
+(*Set coil*)
+STS_ESTOP_LATCHED := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0003 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,13
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+STS_RUN_PERMIT := BOOL_IN_13 AND BOOL_IN_14 AND BOOL_IN_15 AND BOOL_IN_16 AND NOT(STS_ESTOP_LATCHED) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0004 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,15
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB11 := BOOL_IN_11 ;
+__EDTB12 := STS_RUNNING ;
+STS_RUNNING := (__EDTB11 OR __EDTB12) AND STS_RUN_PERMIT ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0005 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,18
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB13 := BOOL_IN_1 AND BOOL_IN_2 ;
+IF __EDTB13 THEN
+(*Set coil*)
+STS_TALL_BOX_SEEN := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0006 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,20
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: F_TRIG *)
+FT_Low_Beam(BOOL_IN_1) ;
+PLS_BOX_PASSED := FT_Low_Beam.Q ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0007 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,22
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB14 := PLS_BOX_PASSED AND STS_TALL_BOX_SEEN ;
+IF __EDTB14 THEN
+CLASS_NEW := (  CLASS_TALL) ;
+END_IF ;
+__MO_1GAIN_1 := __EDTB14 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0008 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,25
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB15 := PLS_BOX_PASSED AND NOT(STS_TALL_BOX_SEEN) ;
+IF __EDTB15 THEN
+CLASS_NEW := (  CLASS_SHORT) ;
+END_IF ;
+__MO_1GAIN_2 := __EDTB15 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0009 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,28
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB16 := PLS_BOX_PASSED ;
+IF __EDTB16 THEN
+(*Reset coil*)
+STS_TALL_BOX_SEEN := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG000A ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,30
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+PLS_QUEUE_LOAD := STS_RUNNING AND PLS_BOX_PASSED AND NOT(STS_QUEUE_FULL) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG000B ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,32
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: FFL *)
+FFL_Queue_Load(PLS_QUEUE_LOAD, CLASS_NEW, CLASS_QUEUE, CLASS_QUEUE_CTRL, , , ) ;
+STS_QUEUE_FULL := FFL_Queue_Load.Full ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG000C ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,40
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: R_TRIG *)
+Rt_At_Front(STS_RUNNING AND BOOL_IN_6) ;
+PLS_QUEUE_READ := Rt_At_Front.Q AND NOT(STS_CLASS_VALID) AND NOT(STS_QUEUE_EMPTY) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG000D ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,42
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: FFU *)
+FFU_Queue_Read(PLS_QUEUE_READ, CLASS_ACTIVE, , CLASS_QUEUE, CLASS_QUEUE_CTRL, , , , ) ;
+STS_QUEUE_EMPTY := FFU_Queue_Read.Empty ;
+STS_QUEUE_READ_ERROR := FFU_Queue_Read.Error ;
+STS_QUEUE_READ_DONE := FFU_Queue_Read.Done ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG000E ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,52
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB17 := STS_QUEUE_READ_DONE AND NOT(STS_QUEUE_READ_ERROR) ;
+IF __EDTB17 THEN
+(*Set coil*)
+STS_CLASS_VALID := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG000F ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,54
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB19 := STS_CLASS_VALID ;
+IF __EDTB19 THEN
+(* Operator output on : = with __EDTB18 *)
+__EDTB18 := (CLASS_ACTIVE = CLASS_SHORT) ;
+ELSE
+__EDTB18 := FALSE ;
+END_IF ;
+__MO_EQUAL_1 := __EDTB18 ;
+STS_ACTIVE_SHORT := __EDTB18 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0010 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,58
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB21 := STS_CLASS_VALID ;
+IF __EDTB21 THEN
+(* Operator output on : = with __EDTB20 *)
+__EDTB20 := (CLASS_ACTIVE = CLASS_TALL) ;
+ELSE
+__EDTB20 := FALSE ;
+END_IF ;
+__MO_EQUAL_2 := __EDTB20 ;
+STS_ACTIVE_TALL := __EDTB20 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0011 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,62
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB22 := STS_RUNNING AND BOOL_IN_4 AND BOOL_IN_3 ;
+IF __EDTB22 THEN
+(*Set coil*)
+STS_TURNTABLE_LOADING := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0012 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,64
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB23 := BOOL_IN_6 ;
+IF __EDTB23 THEN
+(*Reset coil*)
+STS_TURNTABLE_LOADING := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0013 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,66
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB24 := BOOL_IN_4 AND NOT(BOOL_IN_6) AND STS_TURNTABLE_LOADING ;
+__EDTB25 := BOOL_IN_5 AND STS_ACTIVE_SHORT ;
+CMD_TURNTABLE_LOAD := (__EDTB24 OR __EDTB25) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0014 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,69
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+CMD_TURNTABLE_UNLOAD := BOOL_IN_5 AND STS_ACTIVE_TALL ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0015 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,71
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: R_TRIG *)
+Rt_Turn_Start(STS_RUNNING AND BOOL_IN_4 AND STS_CLASS_VALID AND BOOL_IN_6) ;
+__EDTB26 := Rt_Turn_Start.Q ;
+IF __EDTB26 THEN
+(*Set coil*)
+CMD_TURN := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0016 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,73
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: F_TRIG *)
+Ft_Unload_Right(BOOL_IN_5 AND BOOL_IN_7) ;
+__EDTB27 := Ft_Unload_Right.Q ;
+(* FB call: F_TRIG *)
+Ft_Unload_Left(BOOL_IN_5 AND BOOL_IN_8) ;
+__EDTB28 := Ft_Unload_Left.Q ;
+__EDTB29 := (__EDTB27 OR __EDTB28) ;
+__EDTB30 := __EDTB29 ;
+IF __EDTB30 THEN
+(*Reset coil*)
+CMD_TURN := FALSE ;
+END_IF ;
+__EDTB31 := __EDTB29 ;
+IF __EDTB31 THEN
+(*Reset coil*)
+STS_CLASS_VALID := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0017 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,76
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB32 := NOT(BOOL_IN_3) ;
+__EDTB33 := BOOL_IN_4 AND CMD_TURNTABLE_LOAD ;
+CMD_ENTRY_CONV := (__EDTB32 OR __EDTB33) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0018 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,79
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB34 := NOT(BOOL_IN_0) ;
+__EDTB35 := CMD_ENTRY_CONV ;
+CMD_FEEDER := (__EDTB34 OR __EDTB35) AND NOT(STS_QUEUE_FULL) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0019 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,82
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB36 := BOOL_IN_5 AND STS_ACTIVE_SHORT ;
+IF __EDTB36 THEN
+(*Set coil*)
+CMD_LEFT_CONV := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG001A ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,84
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB37 := BOOL_IN_5 AND STS_ACTIVE_TALL ;
+IF __EDTB37 THEN
+(*Set coil*)
+CMD_RIGHT_CONV := TRUE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG001B ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,86
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: F_TRIG *)
+Ft_Left_Exit(BOOL_IN_10) ;
+PLS_LEFT_EXIT := Ft_Left_Exit.Q ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG001C ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,88
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: F_TRIG *)
+Ft_Right_Exit(BOOL_IN_9) ;
+PLS_RIGHT_EXIT := Ft_Right_Exit.Q ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG001D ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,90
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB38 := PLS_LEFT_EXIT AND NOT(BOOL_IN_8) ;
+IF __EDTB38 THEN
+(*Reset coil*)
+CMD_LEFT_CONV := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG001E ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,92
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB39 := PLS_RIGHT_EXIT AND NOT(BOOL_IN_7) ;
+IF __EDTB39 THEN
+(*Reset coil*)
+CMD_RIGHT_CONV := FALSE ;
+END_IF ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG001F ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,94
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB40 := PLS_LEFT_EXIT ;
+__EDTB41 := PLS_RIGHT_EXIT ;
+PLS_BOX_EXITED := (__EDTB40 OR __EDTB41) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0020 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,97
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB42 := __SYSVA_FIRST_SCAN ;
+__EDTB43 := NOT(BOOL_IN_16) ;
+STS_COUNTER_RESET := (__EDTB42 OR __EDTB43) ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0021 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,100
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+(* FB call: CTUD *)
+CTUD_Boxes_In_Process(BOOL_IN_0, PLS_BOX_EXITED, STS_COUNTER_RESET, FALSE, 1000) ;
+CNT_BOXES_IN_PROCESS := CTUD_Boxes_In_Process.CV ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0022 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,106
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_0 := STS_RUNNING AND CMD_FEEDER ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0023 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,108
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_1 := STS_RUNNING AND CMD_ENTRY_CONV ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0024 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,110
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_2 := STS_RUNNING AND CMD_TURNTABLE_LOAD ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0025 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,112
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_3 := STS_RUNNING AND CMD_TURNTABLE_UNLOAD ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0026 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,114
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_4 := STS_RUNNING AND CMD_TURN ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0027 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,116
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_5 := STS_RUNNING AND CMD_LEFT_CONV ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0028 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,118
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+BOOL_OUT_6 := STS_RUNNING AND CMD_RIGHT_CONV ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG0029 ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,120
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB44 := STS_RUNNING ;
+BOOL_OUT_7 := __EDTB44 ;
+BOOL_OUT_12 := __EDTB44 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG002A ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,123
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB45 := NOT(STS_RUNNING) AND NOT(STS_ESTOP_LATCHED) ;
+BOOL_OUT_8 := __EDTB45 ;
+BOOL_OUT_10 := __EDTB45 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG002B ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,126
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB46 := STS_ESTOP_LATCHED ;
+BOOL_OUT_9 := __EDTB46 ;
+BOOL_OUT_11 := __EDTB46 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG002C ;
+
+
+(*************** Rung **********************************)
+(**)
+__STEPPRAGMA
+0,129
+__ENDSTEPPRAGMA
+(*Label :*)(**)
+__EDTB47 := TRUE ;
+IF __EDTB47 THEN
+INT_OUT_0 := ANY_TO_INT(CNT_BOXES_IN_PROCESS) ;
+END_IF ;
+__MO_ANY_TO_INT_1 := __EDTB47 ;
+
+(*************** Code for the end of Rung **************)
+__GL __LG002D ;
+
+
+(*************** Code for the end of File **************)
+__GL __LG0000 ;
+
+
+
+(*************** Local Symbols table *******************)
+(* __EDTB1 *)
+(* __EDTB2 *)
+(* __EDTB3 *)
+(* __EDTB4 *)
+(* __EDTB5 *)
+(* __EDTB6 *)
+(* __EDTB7 *)
+(* __EDTB8 *)
+(* __EDTB9 *)
+(* __EDTB10 *)
+(* __EDTB11 *)
+(* __EDTB12 *)
+(* __EDTB13 *)
+(* __EDTB14 *)
+(* __EDTB15 *)
+(* __EDTB16 *)
+(* __EDTB17 *)
+(* __EDTB18 *)
+(* __EDTB19 *)
+(* __EDTB20 *)
+(* __EDTB21 *)
+(* __EDTB22 *)
+(* __EDTB23 *)
+(* __EDTB24 *)
+(* __EDTB25 *)
+(* __EDTB26 *)
+(* __EDTB27 *)
+(* __EDTB28 *)
+(* __EDTB29 *)
+(* __EDTB30 *)
+(* __EDTB31 *)
+(* __EDTB32 *)
+(* __EDTB33 *)
+(* __EDTB34 *)
+(* __EDTB35 *)
+(* __EDTB36 *)
+(* __EDTB37 *)
+(* __EDTB38 *)
+(* __EDTB39 *)
+(* __EDTB40 *)
+(* __EDTB41 *)
+(* __EDTB42 *)
+(* __EDTB43 *)
+(* __EDTB44 *)
+(* __EDTB45 *)
+(* __EDTB46 *)
+(* __EDTB47 *)
+

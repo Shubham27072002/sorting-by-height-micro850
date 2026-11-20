@@ -1,0 +1,270 @@
+=====================================================================
+ SORT_BY_HEIGHT  -  Ladder logic, readable text export (45 rungs)
+ Controller : Allen-Bradley Micro850 (Micro800 simulator)
+ Software   : Connected Components Workbench (CCW) 23.0
+ Program    : Controller > Tasks > MainTask > Program1 > Sort_By_Height
+=====================================================================
+
+How to read this file
+---------------------
+* Names are exactly as they appear in the CCW project.
+* BOOL_IN_x / BOOL_OUT_x / INT_OUT_0 are the Factory I/O driver tags.
+  Their meaning is in docs/io-table.md.
+* Every rung is shown as the logic it implements:
+      A AND B         series contacts
+      A OR B          parallel contacts
+      NOT A           normally-closed (XIO) contact
+      X := ...        output coil / assignment
+      LATCH / UNLATCH set (OTL) / reset (OTU) coil
+* Rung order matters: the PLC scans top to bottom, so values are
+  produced above the rungs that use them. See docs/program-structure.md.
+* The ladder screenshots for each group are in media/images/ladder/.
+
+  Screenshot            Rungs
+  -------------------   ------------------------------------------
+  r01-r05.png           R01 - R05
+  r06-r11.png           R06 - R11
+  r12-r15.png           R12 - R15
+  r16-r20.png           R16 - R20
+  r21-r26.png           R21 - R26
+  r27-r33.png           R27 - R33
+  r34-r39.png           R34 - R39
+  r40-r45.png           R40 - R45
+
+
+=====================================================================
+ SECTION 1   SAFETY AND RUN CONTROL                      (R01 - R05)
+=====================================================================
+
+R01  First-scan initialisation
+     "Clear every latched state when the program starts."
+     IF __SYSVA_FIRST_SCAN THEN
+         UNLATCH Sts_EStop_Latched
+         UNLATCH Sts_Turntable_Loading
+         UNLATCH Sts_Class_Valid
+         UNLATCH Sts_Tall_Box_Seen
+         UNLATCH Cmd_Turn
+         UNLATCH Cmd_Left_Conv
+         UNLATCH Cmd_Right_Conv
+
+R02  E-stop reset
+     "Reset button clears the E-stop latch, but only if the E-stop is released."
+     IF BOOL_IN_12 (reset) AND BOOL_IN_14 (emergency_stop, TRUE = released) THEN
+         UNLATCH Sts_EStop_Latched
+
+R03  E-stop set
+     "Pressing the E-stop latches the fault. This rung is below R02 so the E-stop wins."
+     IF NOT BOOL_IN_14 THEN
+         LATCH Sts_EStop_Latched
+
+R04  Run permissive
+     "All conditions that must be true for the cell to run."
+     Sts_Run_Permit := BOOL_IN_13 (stop, TRUE = not pressed)
+                   AND BOOL_IN_14 (emergency_stop, TRUE = released)
+                   AND BOOL_IN_15 (auto selected)
+                   AND BOOL_IN_16 (Factory I/O running)
+                   AND NOT Sts_EStop_Latched
+
+R05  Run seal-in
+     "Start button seals in; losing the permissive drops it."
+     Sts_Running := (BOOL_IN_11 (start) OR Sts_Running) AND Sts_Run_Permit
+
+
+=====================================================================
+ SECTION 2   HEIGHT CLASSIFICATION AND QUEUE LOAD        (R06 - R12)
+=====================================================================
+
+R06  Tall box detected
+     "A tall box blocks both the low and the high beam at the same time."
+     IF BOOL_IN_1 (low_box) AND BOOL_IN_2 (high_box) THEN
+         LATCH Sts_Tall_Box_Seen
+
+R07  Box has passed the low beam
+     "Falling edge of the low beam = the box has fully gone by."
+     FT_Low_Beam ( CLK := BOOL_IN_1 )
+     Pls_Box_Passed := FT_Low_Beam.Q                    [one-scan pulse]
+
+R08  Classify as tall
+     IF Pls_Box_Passed AND Sts_Tall_Box_Seen THEN
+         Class_New := CLASS_TALL                        [2]
+
+R09  Classify as short
+     IF Pls_Box_Passed AND NOT Sts_Tall_Box_Seen THEN
+         Class_New := CLASS_SHORT                       [1]
+
+R10  Clear the tall flag for the next box
+     IF Pls_Box_Passed THEN
+         UNLATCH Sts_Tall_Box_Seen
+
+R11  Queue-load pulse
+     "Push only while running and only if the queue has room."
+     Pls_Queue_Load := Sts_Running AND Pls_Box_Passed AND NOT Sts_Queue_Full
+
+R12  Push class into the FIFO queue
+     FFL_Queue_Load ( Execute := Pls_Queue_Load,
+                      Src     := Class_New,
+                      FIFO    := Class_Queue,           [INT array 0..9]
+                      FIFOCon := Class_Queue_Ctrl )     [Length = 10]
+     Sts_Queue_Full := FFL_Queue_Load.Full
+
+
+=====================================================================
+ SECTION 3   QUEUE READ                                  (R13 - R17)
+=====================================================================
+
+R13  Queue-read pulse
+     "When a box reaches the front of the turntable and no class is loaded yet."
+     Rt_At_Front ( CLK := Sts_Running AND BOOL_IN_6 (at_front) )
+     Pls_Queue_Read := Rt_At_Front.Q
+                   AND NOT Sts_Class_Valid
+                   AND NOT Sts_Queue_Empty
+
+R14  Pop class from the FIFO queue
+     FFU_Queue_Read ( Execute := Pls_Queue_Read,
+                      Dest    := Class_Active,
+                      FIFO    := Class_Queue,
+                      FIFOCon := Class_Queue_Ctrl )
+     Sts_Queue_Empty      := FFU_Queue_Read.Empty
+     Sts_Queue_Read_Error := FFU_Queue_Read.Error
+     Sts_Queue_Read_Done  := FFU_Queue_Read.Done
+
+R15  Active class is now valid
+     IF Sts_Queue_Read_Done AND NOT Sts_Queue_Read_Error THEN
+         LATCH Sts_Class_Valid
+
+R16  Active box is short
+     Sts_Active_Short := Sts_Class_Valid AND (Class_Active = CLASS_SHORT)
+
+R17  Active box is tall
+     Sts_Active_Tall  := Sts_Class_Valid AND (Class_Active = CLASS_TALL)
+
+
+=====================================================================
+ SECTION 4   TURNTABLE AND ENTRY CONVEYORS               (R18 - R25)
+=====================================================================
+
+R18  Turntable loading starts
+     IF Sts_Running AND BOOL_IN_4 (at_load_position)
+                    AND BOOL_IN_3 (at_turntable_entry) THEN
+         LATCH Sts_Turntable_Loading
+
+R19  Turntable loading ends
+     IF BOOL_IN_6 (at_front) THEN
+         UNLATCH Sts_Turntable_Loading
+
+R20  Turntable "Load" roller command
+     "Roll the box in while loading, and roll short boxes out at the unload position."
+     Cmd_Turntable_Load := ( BOOL_IN_4 AND NOT BOOL_IN_6 AND Sts_Turntable_Loading )
+                        OR ( BOOL_IN_5 (at_unload_position) AND Sts_Active_Short )
+
+R21  Turntable "Unload" roller command
+     "Tall boxes leave in the opposite direction."
+     Cmd_Turntable_Unload := BOOL_IN_5 AND Sts_Active_Tall
+
+R22  Turn start
+     "Box is at the front, its class is known: start turning."
+     Rt_Turn_Start ( CLK := Sts_Running AND BOOL_IN_4 AND Sts_Class_Valid AND BOOL_IN_6 )
+     IF Rt_Turn_Start.Q THEN
+         LATCH Cmd_Turn
+
+R23  Box has left the turntable
+     "Falling edge on either exit side ends the turn and forgets the active class."
+     Ft_Unload_Right ( CLK := BOOL_IN_5 AND BOOL_IN_7 (at_right_entry) )
+     Ft_Unload_Left  ( CLK := BOOL_IN_5 AND BOOL_IN_8 (at_left_entry)  )
+     IF Ft_Unload_Right.Q OR Ft_Unload_Left.Q THEN
+         UNLATCH Cmd_Turn
+         UNLATCH Sts_Class_Valid
+
+R24  Entry conveyor command
+     Cmd_Entry_Conv := NOT BOOL_IN_3
+                    OR ( BOOL_IN_4 AND Cmd_Turntable_Load )
+
+R25  Feeder command
+     "Feeder runs with the entry conveyor, or while the entry is clear,
+      but stops when the queue is full."
+     Cmd_Feeder := ( NOT BOOL_IN_0 (at_entry) OR Cmd_Entry_Conv )
+               AND NOT Sts_Queue_Full
+
+
+=====================================================================
+ SECTION 5   EXIT CONVEYORS                              (R26 - R31)
+=====================================================================
+
+R26  Left exit conveyor on (short boxes)
+     IF BOOL_IN_5 AND Sts_Active_Short THEN
+         LATCH Cmd_Left_Conv
+
+R27  Right exit conveyor on (tall boxes)
+     IF BOOL_IN_5 AND Sts_Active_Tall THEN
+         LATCH Cmd_Right_Conv
+
+R28  Box left the left exit
+     Ft_Left_Exit ( CLK := BOOL_IN_10 (at_left_exit) )
+     Pls_Left_Exit := Ft_Left_Exit.Q                    [one-scan pulse]
+
+R29  Box left the right exit
+     Ft_Right_Exit ( CLK := BOOL_IN_9 (at_right_exit) )
+     Pls_Right_Exit := Ft_Right_Exit.Q                  [one-scan pulse]
+
+R30  Left conveyor off
+     "Only when no other box is still on the entry section of this conveyor."
+     IF Pls_Left_Exit AND NOT BOOL_IN_8 THEN
+         UNLATCH Cmd_Left_Conv
+
+R31  Right conveyor off
+     IF Pls_Right_Exit AND NOT BOOL_IN_7 THEN
+         UNLATCH Cmd_Right_Conv
+
+
+=====================================================================
+ SECTION 6   BOXES-IN-PROCESS COUNTER                    (R32 - R34)
+=====================================================================
+
+R32  Box exited (either side)
+     Pls_Box_Exited := Pls_Left_Exit OR Pls_Right_Exit
+
+R33  Counter reset
+     "Zero the count on the first scan and whenever the simulation is not running."
+     Sts_Counter_Reset := __SYSVA_FIRST_SCAN OR NOT BOOL_IN_16
+
+R34  Up/down counter
+     "+1 when a box reaches the entry sensor, -1 when it leaves an exit."
+     CTUD_Boxes_In_Process ( CU    := BOOL_IN_0 (at_entry),
+                             CD    := Pls_Box_Exited,
+                             RESET := Sts_Counter_Reset,
+                             LOAD  := FALSE,
+                             PV    := 1000 )
+     Cnt_Boxes_In_Process := CTUD_Boxes_In_Process.CV   [DINT]
+     (CU and CD count on the rising edge of their input, so no edge block
+      is needed in front of them. QU and QD are not used.)
+
+
+=====================================================================
+ SECTION 7   OUTPUTS                                     (R35 - R45)
+=====================================================================
+ Every physical output is written in exactly one rung, and every
+ actuator command is gated by Sts_Running.
+
+R35  BOOL_OUT_0  (feeder_conveyor)  := Sts_Running AND Cmd_Feeder
+R36  BOOL_OUT_1  (entry_conveyor)   := Sts_Running AND Cmd_Entry_Conv
+R37  BOOL_OUT_2  (load)             := Sts_Running AND Cmd_Turntable_Load
+R38  BOOL_OUT_3  (unload)           := Sts_Running AND Cmd_Turntable_Unload
+R39  BOOL_OUT_4  (turn)             := Sts_Running AND Cmd_Turn
+R40  BOOL_OUT_5  (left_conveyor)    := Sts_Running AND Cmd_Left_Conv
+R41  BOOL_OUT_6  (right_conveyor)   := Sts_Running AND Cmd_Right_Conv
+
+R42  Running lamps
+     BOOL_OUT_7  (green_indicator) := Sts_Running
+     BOOL_OUT_12 (stop_light)      := Sts_Running
+
+R43  Stopped / ready lamps
+     BOOL_OUT_8  (yellow_indicator) := NOT Sts_Running AND NOT Sts_EStop_Latched
+     BOOL_OUT_10 (start_light)      := NOT Sts_Running AND NOT Sts_EStop_Latched
+
+R44  E-stop lamps
+     BOOL_OUT_9  (red_indicator)    := Sts_EStop_Latched
+     BOOL_OUT_11 (reset_light)      := Sts_EStop_Latched
+
+R45  Counter display
+     INT_OUT_0 (counter) := ANY_TO_INT( Cnt_Boxes_In_Process )
+     (The counter value is DINT, the Factory I/O display tag is INT.)
